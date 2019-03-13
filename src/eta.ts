@@ -61,18 +61,16 @@ export interface ETA {
   walking: Element;
 }
 
-export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: (percent: number) => void) => {
+export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: () => void) => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ETA[] | null>(null);
   const withLoc = items.filter(item => item.location);
-  const chunkSize = Math.min(25, Math.ceil(withLoc.length / 3))
-  const chunks = chunk(withLoc, chunkSize);
-  const chunksLen = chunks.length;
+  const chunks = chunk(withLoc, 25);
   useEffect(() => {
     setError(null);
     setLoading(true);
-    if (!currentLoc) return;
+    if (!currentLoc || items.length === 0) return;
     Promise.all(
       chunks.map(async chunkOfItems => {
         const locs = chunkOfItems.map(item => item.location);
@@ -80,8 +78,6 @@ export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: (pe
           getETAs('DRIVING', currentLoc, locs),
           getETAs('WALKING', currentLoc, locs),
         ]);
-        console.log('hi');
-        updatePercent(75 / chunksLen);
         return driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }));
       })
     )
@@ -95,6 +91,8 @@ export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: (pe
             walking: e.walking,
           };
         });
+        console.log('Finished fetching etas');
+        updatePercent();
         setData(etas);
         setLoading(false);
       })

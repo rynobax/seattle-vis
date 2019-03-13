@@ -6,9 +6,10 @@ import { useGeoPosition, Loc } from './useLocation';
 import { useETA } from './eta';
 import times from 'lodash/times';
 
-const useData = (currentLoc: Loc | null) => {
+const useData = () => {
   const [percent, setPercent] = useState(0);
-  const updatePercent = (n: number) => setPercent(percent + n);
+  const updatePercent = () => setPercent(p => p + 33);
+  const currentLoc = useGeoPosition(updatePercent);
   const airtableRes = useAirtable(updatePercent);
   const items = airtableRes.data ? [...airtableRes.data.events, ...airtableRes.data.meals] : [];
   const etas = useETA(items, currentLoc, updatePercent);
@@ -20,20 +21,19 @@ const useData = (currentLoc: Loc | null) => {
   };
 };
 
-const PERCENT_INTERVAL = 4;
+const PERCENT_INTERVAL = 3;
 
 const App: React.FC = () => {
-  const position = useGeoPosition();
   const [tab, setTab] = useState(0);
   const [walking, setWalking] = useState(true);
-  const { error, loading, data, percent } = useData(position);
+  const { error, loading, data, percent } = useData();
   if (error) return <ErrorMessage>{error.message}</ErrorMessage>;
   if (loading || !data.airtable || !data.etas) {
     const INTERVAL_SIZE = 100 / PERCENT_INTERVAL;
     return (
       <PercentContainer>
         {times(PERCENT_INTERVAL).map(i => {
-          const done = percent >= i * INTERVAL_SIZE;
+          const done = percent >= (i * INTERVAL_SIZE + 1);
           return done ? <ActivePercent key={i} /> : <PassivePercent key={i} />;
         })}
       </PercentContainer>

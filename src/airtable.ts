@@ -60,7 +60,7 @@ interface Data {
   meals: Item[];
 }
 
-export const useAirtable = (updatePercent: (percent: number) => void) => {
+export const useAirtable = (updatePercent: () => void) => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Data | null>(null);
@@ -83,7 +83,8 @@ export const useAirtable = (updatePercent: (percent: number) => void) => {
             id: `meals-${i}`,
           })),
         });
-        updatePercent(25);
+        console.log('Finished fetching airtable');
+        updatePercent();
         setLoading(false);
       })
       .catch((err: Error) => {

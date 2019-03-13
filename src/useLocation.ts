@@ -5,14 +5,17 @@ export interface Loc {
   lng: number;
 }
 
-export const useGeoPosition = () => {
+export const useGeoPosition = (updatePercent: () => void) => {
   const [position, setPosition] = React.useState<Loc | null>(null);
 
   React.useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       positionUpdate => {
         const { latitude, longitude } = positionUpdate.coords;
-        setPosition({ lat: 47.6090614, lng: -122.3408986 });
+        // setPosition({ lat: 47.6010614, lng: -122.3408986 });
+        setPosition({ lat: 47.6010614, lng: -122.3408986 });
+        console.log('Finished fetching location');
+        updatePercent();
       },
       () => null
     );
