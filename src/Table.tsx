@@ -115,14 +115,18 @@ const RHS = styled(Cell)`
   flex-direction: column;
 `;
 
+const MAIN_TEXT_COLOR = 'hsla(240, 60%, 5%, 0.85)';
+
 const Name = styled.div`
   font-weight: 700;
+  color: ${MAIN_TEXT_COLOR};
 `;
 
 const Description = styled.div``;
 
 const Distance = styled.div`
   font-weight: 700;
+  color: ${MAIN_TEXT_COLOR};
 `;
 
 const Duration = styled.div`
