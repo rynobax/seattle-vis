@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useReducer } from 'react';
 import styled from 'styled-components';
+import memo from 'lodash/memoize';
 import { Item } from './airtable';
+import { ETA } from './eta';
 
 interface TableProps {
   items: Item[];
+  etas: ETA[];
 }
 
 const MAX_LEN = 100;
 const clip = (str: string, toExpand: boolean) => {
-  if(toExpand) return str;
+  if (toExpand) return str;
   let wordLen = 0;
   const words: string[] = [];
   let stoppedEarlyText = '';
@@ -23,14 +26,37 @@ const clip = (str: string, toExpand: boolean) => {
   return words.join(' ') + stoppedEarlyText;
 };
 
-const Table: React.FC<TableProps> = ({ items }) => {
+const getMerged = memo(
+  (items: Item[], etas: ETA[]) =>
+    items.map(item => {
+      const eta = etas.find(e => e.id === item.id);
+      let distanceVal = 999999999;
+      let distanceText = '';
+      if (eta && eta.walking.status === 'OK') {
+        distanceText = eta.walking.distance.text;
+        distanceVal = eta.walking.distance.value;
+      }
+      return {
+        ...item,
+        distanceText,
+        distanceVal,
+      };
+    }),
+  (items: Item[]) => items.map(item => item.id).join()
+);
+
+const Table: React.FC<TableProps> = ({ items, etas }) => {
+  const merged = getMerged(items, etas);
+
+  const sorted = merged.sort((a, b) => a.distanceVal - b.distanceVal);
+
   return (
     <>
       <Row>
         <SortButton>💵</SortButton>
         <SortButton>🚶‍</SortButton>
       </Row>
-      {items.map(item => {
+      {sorted.map(item => {
         const [expanded, setExpanded] = useState();
         return (
           <Row key={item.id} onClick={() => setExpanded(!expanded)}>
@@ -40,7 +66,7 @@ const Table: React.FC<TableProps> = ({ items }) => {
               </Name>
               <Description>{clip(item.description, expanded)}</Description>
             </LHS>
-            <RHS>5 minutes</RHS>
+            <RHS>{item.distanceText}</RHS>
           </Row>
         );
       })}

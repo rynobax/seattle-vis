@@ -1,23 +1,35 @@
 import React, { useState } from 'react';
-import { useAirtable } from './airtable';
+import { useAirtable, Item } from './airtable';
 import styled from 'styled-components';
 import Table from './Table';
-import { useGeoPosition } from './useLocation';
-import { getETA } from './eta';
+import { useGeoPosition, Loc } from './useLocation';
+import { useETA } from './eta';
+import faker from 'faker/locale/en_US';
 
+const useData = (currentLoc: Loc | null) => {
+  const airtableRes = useAirtable();
+  const items = airtableRes.data ? [...airtableRes.data.events, ...airtableRes.data.meals] : [];
+  const etas = useETA(items, currentLoc);
+  return {
+    data: { airtable: airtableRes.data, etas: etas.data },
+    loading: airtableRes.loading || etas.loading,
+    error: airtableRes.error || etas.error,
+  };
+};
+
+const loadingText = faker.hacker.phrase();
 const App: React.FC = () => {
   const position = useGeoPosition();
   const [tab, setTab] = useState(0);
-  const { data, error, loading } = useAirtable();
+  const { error, loading, data } = useData(position);
   if (error) return <span>{error.message}</span>;
-  if (loading || !data) return <span>Loading...</span>;
-  // const etas = useETA(data, position);
-  if(position) {
-    getETA(position, '86 Pike Pl, Seattle, WA 98101')
-      .then(res => console.log(res));
-  }
+  if (loading || !data.airtable || !data.etas) return <span>{loadingText}...</span>;
+  const {
+    airtable: { events, meals },
+    etas,
+  } = data;
 
-  const items = tab === 0 ? data.events : data.meals;
+  const items = tab === 0 ? events : meals;
   return (
     <div>
       <Header>
@@ -30,8 +42,7 @@ const App: React.FC = () => {
         </Tab>
       </Header>
       <Content>
-      <div>{JSON.stringify(position, null, 2)}</div>
-        <Table items={items} />
+        <Table items={items} etas={etas} />
       </Content>
     </div>
   );

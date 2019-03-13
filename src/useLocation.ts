@@ -9,15 +9,14 @@ export const useGeoPosition = () => {
   const [position, setPosition] = React.useState<Loc | null>(null);
 
   React.useEffect(() => {
-    const listener = navigator.geolocation.watchPosition(
+    navigator.geolocation.getCurrentPosition(
       positionUpdate => {
         const { latitude, longitude } = positionUpdate.coords;
-        setPosition({ lat: latitude, lng: longitude });
+        // setPosition({ lat: latitude, lng: longitude });
+        setPosition({ lat: 47.6090614, lng: -122.3408986 });
       },
       () => null
     );
-
-    return () => navigator.geolocation.clearWatch(listener);
   }, []);
 
   return position;
