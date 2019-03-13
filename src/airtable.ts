@@ -60,14 +60,13 @@ interface Data {
   meals: Item[];
 }
 
-export const useAirtable = () => {
+export const useAirtable = (updatePercent: (percent: number) => void) => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Data | null>(null);
   useEffect(() => {
     getAirtableData()
       .then(({ events, meals }) => {
-        console.log(events);
         setData({
           events: events.map((e, i) => ({
             name: e.Activity,
@@ -84,6 +83,7 @@ export const useAirtable = () => {
             id: `meals-${i}`,
           })),
         });
+        updatePercent(25);
         setLoading(false);
       })
       .catch((err: Error) => {

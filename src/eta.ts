@@ -61,51 +61,47 @@ export interface ETA {
   walking: Element;
 }
 
-export const useETA = (items: Item[], currentLoc: Loc | null) => {
+export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: (percent: number) => void) => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ETA[] | null>(null);
-  const [percent, setPercent] = useState(0);
   const withLoc = items.filter(item => item.location);
-  const chunks = chunk(withLoc, 25);
-  useEffect(() => {
-    if(percent < 100) {
-      setTimeout(() => {
-        setPercent(percent + 10);
-      }, 400);
-    }
-  }, [percent]);
+  const chunkSize = Math.min(25, Math.ceil(withLoc.length / 3))
+  const chunks = chunk(withLoc, chunkSize);
+  const chunksLen = chunks.length;
   useEffect(() => {
     setError(null);
     setLoading(true);
     if (!currentLoc) return;
-    // Promise.all(
-    //   chunks.map(async chunkOfItems => {
-    //     const locs = chunkOfItems.map(item => item.location);
-    //     const [driving, walking] = await Promise.all([
-    //       getETAs('DRIVING', currentLoc, locs),
-    //       getETAs('WALKING', currentLoc, locs),
-    //     ]);
-    //     return driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }));
-    //   })
-    // )
-    //   .then(res => {
-    //     const elements = flatten(res);
-    //     const etas = elements.map((e, i) => {
-    //       const orig = withLoc[i];
-    //       return {
-    //         id: orig.id,
-    //         driving: e.driving,
-    //         walking: e.walking,
-    //       };
-    //     });
-    //     setData(etas);
-    //     setLoading(false);
-    //   })
-    //   .catch(err => {
-    //     setError(err);
-    //     setLoading(false);
-    //   });
+    Promise.all(
+      chunks.map(async chunkOfItems => {
+        const locs = chunkOfItems.map(item => item.location);
+        const [driving, walking] = await Promise.all([
+          getETAs('DRIVING', currentLoc, locs),
+          getETAs('WALKING', currentLoc, locs),
+        ]);
+        console.log('hi');
+        updatePercent(75 / chunksLen);
+        return driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }));
+      })
+    )
+      .then(res => {
+        const elements = flatten(res);
+        const etas = elements.map((e, i) => {
+          const orig = withLoc[i];
+          return {
+            id: orig.id,
+            driving: e.driving,
+            walking: e.walking,
+          };
+        });
+        setData(etas);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
   }, [items.length, currentLoc]);
-  return { data, loading, error, percent };
+  return { data, loading, error };
 };

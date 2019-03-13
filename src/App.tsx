@@ -7,14 +7,16 @@ import { useETA } from './eta';
 import times from 'lodash/times';
 
 const useData = (currentLoc: Loc | null) => {
-  const airtableRes = useAirtable();
+  const [percent, setPercent] = useState(0);
+  const updatePercent = (n: number) => setPercent(percent + n);
+  const airtableRes = useAirtable(updatePercent);
   const items = airtableRes.data ? [...airtableRes.data.events, ...airtableRes.data.meals] : [];
-  const etas = useETA(items, currentLoc);
+  const etas = useETA(items, currentLoc, updatePercent);
   return {
     data: { airtable: airtableRes.data, etas: etas.data },
     loading: airtableRes.loading || etas.loading,
     error: airtableRes.error || etas.error,
-    percent: etas.percent,
+    percent,
   };
 };
 
@@ -31,7 +33,7 @@ const App: React.FC = () => {
     return (
       <PercentContainer>
         {times(PERCENT_INTERVAL).map(i => {
-          const done = percent > i * INTERVAL_SIZE;
+          const done = percent >= i * INTERVAL_SIZE;
           return done ? <ActivePercent key={i} /> : <PassivePercent key={i} />;
         })}
       </PercentContainer>
