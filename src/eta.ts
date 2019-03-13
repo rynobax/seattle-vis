@@ -65,39 +65,47 @@ export const useETA = (items: Item[], currentLoc: Loc | null) => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ETA[] | null>(null);
+  const [percent, setPercent] = useState(0);
   const withLoc = items.filter(item => item.location);
   const chunks = chunk(withLoc, 25);
   useEffect(() => {
+    if(percent < 100) {
+      setTimeout(() => {
+        setPercent(percent + 10);
+      }, 400);
+    }
+  }, [percent]);
+  useEffect(() => {
     setError(null);
     setLoading(true);
-    if(!currentLoc) return;
-    Promise.all(
-      chunks.map(async chunkOfItems => {
-        const locs = chunkOfItems.map(item => item.location);
-        const [driving, walking] = await Promise.all([
-          getETAs('DRIVING', currentLoc, locs),
-          getETAs('WALKING', currentLoc, locs),
-        ]);
-        return driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }));
-      })
-    )
-      .then(res => {
-        const elements = flatten(res);
-        const etas = elements.map((e, i) => {
-          const orig = withLoc[i];
-          return {
-            id: orig.id,
-            driving: e.driving,
-            walking: e.walking,
-          };
-        });
-        setData(etas);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err);
-        setLoading(false);
-      });
+    if (!currentLoc) return;
+    // Promise.all(
+    //   chunks.map(async chunkOfItems => {
+    //     const locs = chunkOfItems.map(item => item.location);
+    //     const [driving, walking] = await Promise.all([
+    //       getETAs('DRIVING', currentLoc, locs),
+    //       getETAs('WALKING', currentLoc, locs),
+    //     ]);
+    //     return driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }));
+    //   })
+    // )
+    //   .then(res => {
+    //     const elements = flatten(res);
+    //     const etas = elements.map((e, i) => {
+    //       const orig = withLoc[i];
+    //       return {
+    //         id: orig.id,
+    //         driving: e.driving,
+    //         walking: e.walking,
+    //       };
+    //     });
+    //     setData(etas);
+    //     setLoading(false);
+    //   })
+    //   .catch(err => {
+    //     setError(err);
+    //     setLoading(false);
+    //   });
   }, [items.length, currentLoc]);
-  return { data, loading, error };
+  return { data, loading, error, percent };
 };

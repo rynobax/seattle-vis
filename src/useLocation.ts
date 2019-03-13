@@ -12,7 +12,6 @@ export const useGeoPosition = () => {
     navigator.geolocation.getCurrentPosition(
       positionUpdate => {
         const { latitude, longitude } = positionUpdate.coords;
-        // setPosition({ lat: latitude, lng: longitude });
         setPosition({ lat: 47.6090614, lng: -122.3408986 });
       },
       () => null

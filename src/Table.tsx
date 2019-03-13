@@ -7,6 +7,7 @@ import { ETA } from './eta';
 interface TableProps {
   items: Item[];
   etas: ETA[];
+  walking: boolean;
 }
 
 const MAX_LEN = 100;
@@ -30,34 +31,43 @@ const getMerged = memo(
   (items: Item[], etas: ETA[]) =>
     items.map(item => {
       const eta = etas.find(e => e.id === item.id);
-      let distanceVal = 999999999;
-      let distanceText = '';
+      let walkingDurationVal = 999999999;
+      let walkingDistanceText = '';
+      let walkingDurationText = '';
       if (eta && eta.walking.status === 'OK') {
-        distanceText = eta.walking.distance.text;
-        distanceVal = eta.walking.distance.value;
+        walkingDistanceText = eta.walking.distance.text;
+        walkingDurationVal = eta.walking.duration.value;
+        walkingDurationText = eta.walking.duration.text;
+      }
+      let drivingDistanceText = '';
+      let drivingDurationText = '';
+      if (eta && eta.driving.status === 'OK') {
+        drivingDistanceText = eta.driving.distance.text;
+        drivingDurationText = eta.driving.duration.text;
       }
       return {
         ...item,
-        distanceText,
-        distanceVal,
+        walkingDistanceText,
+        walkingDurationVal,
+        walkingDurationText,
+        drivingDistanceText,
+        drivingDurationText,
       };
     }),
   (items: Item[]) => items.map(item => item.id).join()
 );
 
-const Table: React.FC<TableProps> = ({ items, etas }) => {
+const Table: React.FC<TableProps> = ({ items, etas, walking }) => {
   const merged = getMerged(items, etas);
 
-  const sorted = merged.sort((a, b) => a.distanceVal - b.distanceVal);
+  const sorted = merged.sort((a, b) => a.walkingDurationVal - b.walkingDurationVal);
 
   return (
     <>
-      <Row>
-        <SortButton>💵</SortButton>
-        <SortButton>🚶‍</SortButton>
-      </Row>
       {sorted.map(item => {
         const [expanded, setExpanded] = useState();
+        const dist = walking ? item.walkingDistanceText : item.drivingDistanceText;
+        const dur = walking ? item.walkingDurationText : item.drivingDurationText;
         return (
           <Row key={item.id} onClick={() => setExpanded(!expanded)}>
             <LHS>
@@ -66,7 +76,10 @@ const Table: React.FC<TableProps> = ({ items, etas }) => {
               </Name>
               <Description>{clip(item.description, expanded)}</Description>
             </LHS>
-            <RHS>{item.distanceText}</RHS>
+            <RHS>
+              <Distance>{dur}</Distance>
+              <Duration>({dist})</Duration>
+            </RHS>
           </Row>
         );
       })}
@@ -78,19 +91,10 @@ const Row = styled.div`
   display: flex;
   flex-direction: row;
   min-height: 100px;
-  border-bottom: 1px solid grey;
 `;
 
-const SortButton = styled.div`
-  height: 75px;
-  width: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Cell = styled.div`
-  padding: 8px;
+const Cell = styled.div<{ noPadding?: boolean }>`
+  padding: ${p => p.noPadding ? '0px' : '8px'};
 `;
 
 const LHS = styled(Cell)`
@@ -99,7 +103,8 @@ const LHS = styled(Cell)`
 
 const RHS = styled(Cell)`
   width: 28%;
-  border-left: 1px solid grey;
+  display: flex;
+  flex-direction: column;
 `;
 
 const Name = styled.div`
@@ -107,5 +112,13 @@ const Name = styled.div`
 `;
 
 const Description = styled.div``;
+
+const Distance = styled.div`
+  font-weight: 700;
+`;
+
+const Duration = styled.div`
+  color: rgba(14, 30, 37, 0.65);
+`;
 
 export default Table;
