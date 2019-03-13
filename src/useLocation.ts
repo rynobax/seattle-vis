@@ -12,8 +12,8 @@ export const useGeoPosition = (updatePercent: () => void) => {
     navigator.geolocation.getCurrentPosition(
       positionUpdate => {
         const { latitude, longitude } = positionUpdate.coords;
-        // setPosition({ lat: 47.6010614, lng: -122.3408986 });
-        setPosition({ lat: 47.6010614, lng: -122.3408986 });
+        // setPosition({ lat: 47.6086751, lng: -122.3409637 });
+        setPosition({ lat: 47.6086751, lng: -122.3409637 });
         console.log('Finished fetching location');
         updatePercent();
       },

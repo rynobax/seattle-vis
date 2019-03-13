@@ -2,11 +2,11 @@ import React, { useState, useReducer } from 'react';
 import styled from 'styled-components';
 import memo from 'lodash/memoize';
 import { Item } from './airtable';
-import { ETA } from './eta';
+import { ETAS, SuccessfulETA, isSuccessfulETA } from './eta';
 
 interface TableProps {
   items: Item[];
-  etas: ETA[];
+  etas: ETAS[];
   walking: boolean;
 }
 
@@ -28,22 +28,30 @@ const clip = (str: string, toExpand: boolean) => {
 };
 
 const getMerged = memo(
-  (items: Item[], etas: ETA[]) =>
+  (items: Item[], etas: ETAS[]) =>
     items.map(item => {
       const eta = etas.find(e => e.id === item.id);
       let walkingDurationVal = 999999999;
       let walkingDistanceText = '';
       let walkingDurationText = '';
-      if (eta && eta.walking.status === 'OK') {
-        walkingDistanceText = eta.walking.distance.text;
-        walkingDurationVal = eta.walking.duration.value;
-        walkingDurationText = eta.walking.duration.text;
-      }
       let drivingDistanceText = '';
       let drivingDurationText = '';
-      if (eta && eta.driving.status === 'OK') {
-        drivingDistanceText = eta.driving.distance.text;
-        drivingDurationText = eta.driving.duration.text;
+      if (eta) {
+        const closest = eta.etas.reduce<SuccessfulETA | null>((p, c) => {
+          if (isSuccessfulETA(c)) {
+            if (!p) return c;
+            if (c.walking.duration.value < p.walking.duration.value) return c;
+            return p;
+          }
+          return p;
+        }, null);
+        if (closest) {
+          walkingDistanceText = closest.walking.distance.text;
+          walkingDurationVal = closest.walking.duration.value;
+          walkingDurationText = closest.walking.duration.text;
+          drivingDistanceText = closest.driving.distance.text;
+          drivingDurationText = closest.driving.duration.text;
+        }
       }
       return {
         ...item,
@@ -94,7 +102,7 @@ const Row = styled.div`
 `;
 
 const Cell = styled.div<{ noPadding?: boolean }>`
-  padding: ${p => p.noPadding ? '0px' : '8px'};
+  padding: ${p => (p.noPadding ? '0px' : '8px')};
 `;
 
 const LHS = styled(Cell)`

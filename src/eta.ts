@@ -55,18 +55,34 @@ const getETAs = (
   });
 };
 
+export function isSuccessfulETA(eta: ETA): eta is SuccessfulETA {
+  return eta.driving.status === 'OK' && eta.walking.status === 'OK';
+}
+
+export interface SuccessfulETA {
+  driving: SuccessfulElement;
+  walking: SuccessfulElement;
+}
+
 export interface ETA {
-  id: string;
   driving: Element;
   walking: Element;
 }
 
-export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: () => void) => {
+export interface ETAS {
+  id: string;
+  etas: ETA[];
+}
+
+export const useETAS = (items: Item[], currentLoc: Loc | null, updatePercent: () => void) => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<ETA[] | null>(null);
-  const withLoc = items.filter(item => item.location);
-  const chunks = chunk(withLoc, 25);
+  const [data, setData] = useState<ETAS[] | null>(null);
+  const seperateMultipleLocs = items.filter(item => item.location).map(item => ({
+    ...item,
+    location: item.location ? item.location.split('\n') : [''],
+  }));
+  const chunks = chunk(seperateMultipleLocs, 25);
   useEffect(() => {
     setError(null);
     setLoading(true);
@@ -74,21 +90,26 @@ export const useETA = (items: Item[], currentLoc: Loc | null, updatePercent: () 
     Promise.all(
       chunks.map(async chunkOfItems => {
         const locs = chunkOfItems.map(item => item.location);
-        const [driving, walking] = await Promise.all([
-          getETAs('DRIVING', currentLoc, locs),
-          getETAs('WALKING', currentLoc, locs),
-        ]);
-        return driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }));
+        const res = await Promise.all(
+          locs.map(loc =>
+            Promise.all([getETAs('DRIVING', currentLoc, loc), getETAs('WALKING', currentLoc, loc)])
+          )
+        );
+        return res.map(([driving, walking]) =>
+          driving.map((_, i) => ({ driving: driving[i], walking: walking[i] }))
+        );
       })
     )
       .then(res => {
         const elements = flatten(res);
-        const etas = elements.map((e, i) => {
-          const orig = withLoc[i];
+        const etas = elements.map((es, i) => {
+          const orig = seperateMultipleLocs[i];
           return {
             id: orig.id,
-            driving: e.driving,
-            walking: e.walking,
+            etas: es.map(e => ({
+              driving: e.driving,
+              walking: e.walking,
+            })),
           };
         });
         console.log('Finished fetching etas');
