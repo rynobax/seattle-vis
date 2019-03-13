@@ -59,12 +59,16 @@ export function isSuccessfulETA(eta: ETA): eta is SuccessfulETA {
   return eta.driving.status === 'OK' && eta.walking.status === 'OK';
 }
 
-export interface SuccessfulETA {
+interface BaseETA {
+  address: string;
+}
+
+export interface SuccessfulETA extends BaseETA {
   driving: SuccessfulElement;
   walking: SuccessfulElement;
 }
 
-export interface ETA {
+export interface ETA extends BaseETA {
   driving: Element;
   walking: Element;
 }
@@ -106,7 +110,8 @@ export const useETAS = (items: Item[], currentLoc: Loc | null, updatePercent: ()
           const orig = seperateMultipleLocs[i];
           return {
             id: orig.id,
-            etas: es.map(e => ({
+            etas: es.map((e, j) => ({
+              address: orig.location[j],
               driving: e.driving,
               walking: e.walking,
             })),

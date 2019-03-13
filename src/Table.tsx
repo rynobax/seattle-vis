@@ -1,4 +1,4 @@
-import React, { useState, useReducer } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import styled from 'styled-components';
 import memo from 'lodash/memoize';
 import { Item } from './airtable';
@@ -36,6 +36,7 @@ const getMerged = memo(
       let walkingDurationText = '';
       let drivingDistanceText = '';
       let drivingDurationText = '';
+      let address: string | null = null;
       if (eta) {
         const closest = eta.etas.reduce<SuccessfulETA | null>((p, c) => {
           if (isSuccessfulETA(c)) {
@@ -51,6 +52,7 @@ const getMerged = memo(
           walkingDurationText = closest.walking.duration.text;
           drivingDistanceText = closest.driving.distance.text;
           drivingDurationText = closest.driving.duration.text;
+          address = closest.address;
         }
       }
       return {
@@ -60,12 +62,17 @@ const getMerged = memo(
         walkingDurationText,
         drivingDistanceText,
         drivingDurationText,
+        address,
       };
     }),
   (items: Item[]) => items.map(item => item.id).join()
 );
 
 const Table: React.FC<TableProps> = ({ items, etas, walking }) => {
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [items.map(item => item.id).join()]);
+
   const merged = getMerged(items, etas);
 
   const sorted = merged.sort((a, b) => a.walkingDurationVal - b.walkingDurationVal);
@@ -76,6 +83,7 @@ const Table: React.FC<TableProps> = ({ items, etas, walking }) => {
         const [expanded, setExpanded] = useState();
         const dist = walking ? item.walkingDistanceText : item.drivingDistanceText;
         const dur = walking ? item.walkingDurationText : item.drivingDurationText;
+        console.log(item);
         return (
           <Row key={item.id} onClick={() => setExpanded(!expanded)}>
             <LHS>
@@ -86,7 +94,12 @@ const Table: React.FC<TableProps> = ({ items, etas, walking }) => {
             </LHS>
             <RHS>
               <Distance>{dur}</Distance>
-              <Duration>({dist})</Duration>
+              <Duration>{dist ? `(${dist})` : ''}</Duration>
+              {expanded && item.address && (
+                <Link href={`https://maps.google.com/?q=${item.address}`} target="_blank">
+                  Google Maps
+                </Link>
+              )}
             </RHS>
           </Row>
         );
@@ -131,6 +144,10 @@ const Distance = styled.div`
 
 const Duration = styled.div`
   color: rgba(14, 30, 37, 0.65);
+`;
+
+const Link = styled.a`
+  color: ${MAIN_TEXT_COLOR};
 `;
 
 export default Table;
