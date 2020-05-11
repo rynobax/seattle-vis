@@ -27,9 +27,18 @@ const clip = (str: string, toExpand: boolean) => {
   return words.join(' ') + stoppedEarlyText;
 };
 
+interface MergedItem extends Item {
+  walkingDistanceText: string;
+  walkingDurationVal: number;
+  walkingDurationText: string;
+  drivingDistanceText: string;
+  drivingDurationText: string;
+  address: string | null;
+}
+
 const getMerged = memo(
   (items: Item[], etas: ETAS[]) =>
-    items.map(item => {
+    items.map<MergedItem>(item => {
       const eta = etas.find(e => e.id === item.id);
       let walkingDurationVal = 999999999;
       let walkingDistanceText = '';
@@ -80,33 +89,43 @@ const Table: React.FC<TableProps> = ({ items, etas, walking }) => {
   return (
     <>
       {sorted.map(item => {
-        const [expanded, setExpanded] = useState();
-        const dist = walking ? item.walkingDistanceText : item.drivingDistanceText;
-        const dur = walking ? item.walkingDurationText : item.drivingDurationText;
-        console.log(item);
         return (
-          <Row key={item.id} onClick={() => setExpanded(!expanded)}>
-            <LHS>
-              <Name>
-                {item.name} (${item.cost || '?'})
-              </Name>
-              <Description>{clip(item.description, expanded)}</Description>
-            </LHS>
-            <RHS>
-              <Distance>{dur}</Distance>
-              <Duration>{dist ? `(${dist})` : ''}</Duration>
-              {expanded && item.address && (
-                <Link href={`https://maps.google.com/?q=${item.address}`} target="_blank">
-                  Google Maps
-                </Link>
-              )}
-            </RHS>
-          </Row>
+          <TableRow key={item.id} item={item} walking={walking} />
         );
       })}
     </>
   );
 };
+
+interface TableRowProps {
+  item: MergedItem;
+  walking: boolean;
+}
+
+const TableRow: React.FC<TableRowProps> = ({ item, walking }) => {
+  const [expanded, setExpanded] = useState(false);
+  const dist = walking ? item.walkingDistanceText : item.drivingDistanceText;
+  const dur = walking ? item.walkingDurationText : item.drivingDurationText;
+  return (
+    <Row onClick={() => setExpanded(!expanded)}>
+      <LHS>
+        <Name>
+          {item.name} (${item.cost || '?'})
+        </Name>
+        <Description>{clip(item.description, expanded)}</Description>
+      </LHS>
+      <RHS>
+        <Distance>{dur}</Distance>
+        <Duration>{dist ? `(${dist})` : ''}</Duration>
+        {expanded && item.address && (
+          <Link href={`https://maps.google.com/?q=${item.address}`} target="_blank">
+            Google Maps
+          </Link>
+        )}
+      </RHS>
+    </Row>
+  );
+}
 
 const Row = styled.div`
   display: flex;
